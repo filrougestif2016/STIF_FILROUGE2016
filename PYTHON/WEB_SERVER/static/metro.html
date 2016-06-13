@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html ng-app="demoapp">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.js"></script>
+    <script src="/js/angular-leaflet-directive.js"></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.css" />
+    
+    
+
+    <script>
+      var app = angular.module("demoapp", ["leaflet-directive"]);
+      app.controller("GeoJSONController", [ '$scope', '$http', 'leafletData', function($scope, $http, leafletData) {
+        angular.extend($scope, {
+                paris: {
+                    lat: 48.86,
+                    lng: 2.35,
+                    zoom: 12
+                },
+            defaults: {
+                scrollWheelZoom: false
+            },
+            geojson:{}
+        });
+
+	var color_by_line = {
+		"M1": '#f2c931',
+	       	"M2": '#216eb4',
+	        "M3": '#9a9940',
+	        "M3bis": '#89c7d6',
+	        "M4": '#bb4d98',
+	        "M5": '#de8b53',
+	        "M6": '#79bb92',
+	       	"M7": '#df9ab1',
+	       	"M7bis": '#79bb92',
+	        "M8": '#c5a3ca',
+	        "M9": '#cec92b',
+	        "M10": '#dfb039',
+	        "M11": '#8e6538',
+	        "M12": '#328e5b',
+	        "M13": '#89c7d6',
+	        "M14": '#67328e',
+	};
+
+	var empty_geojson = {"type":"FeatureCollection","features":[]};
+
+        // Mouse over function, called from the Leaflet Map Events
+        var lineMouseover = function (feature, leafletEvent) {
+            var layer = leafletEvent.target;
+            layer.setStyle({
+                weight: 2,
+                color: 'white',
+                fillColor: 'white'
+            });
+            layer.bringToFront();
+        };
+	
+        $scope.$on("leafletDirectiveGeoJson.mouseover", function(ev, leafletPayload) {
+            //lineMouseover(leafletPayload.leafletObject.feature, leafletPayload.leafletEvent);
+        });
+
+	function onEachFeature(feature, layer) {
+	  var popupContent = "<p>Métro ligne ";
+
+	  popupContent += feature.properties.res_com;
+	  layer.bindPopup(popupContent);
+	}
+
+        // Get the countries geojson data from a JSON
+        $http.get("traces-metro.geojson").success(function(data, status) {
+	    var data_features = data["features"];
+	    var geo_lines = {};
+	    for (var i=0;i<data_features.length;i++) {
+	      var line = data_features[i];
+	      var line_id = data_features[i]["properties"]["res_com"];
+	      if (! (line_id in geo_lines)) {
+	        geo_lines[line_id] = angular.copy(empty_geojson);
+	      }
+	      geo_lines[line_id]["features"].push(line);
+	    }
+	    for (var line in geo_lines) {
+	        var col = color_by_line[line];
+	        var new_geojson = {};
+	        new_geojson[line] = {
+                      data: geo_lines[line],
+                      style: {
+                        //fillColor: "green",
+                        weight: 3,
+                        opacity: 1,
+                        color: col,
+                        //dashArray: '3',
+                        fillOpacity: 0.7
+                      },
+		      onEachFeature: onEachFeature
+                };
+	        angular.extend($scope.geojson, new_geojson);
+	     }
+        });
+      } ]);
+      </script>
+      
+      <!--Affichage de la carte automatiquement a la bonne taille de fenetre -->
+      <style>
+
+            html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                }
+
+            #map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+       </style>
+            
+       <style> 
+		#map_2dd9631d0fdb4b818f2f1b2d4900cf63 {
+                position : relative;
+                width : 100.0%;
+                height: 100.0%;
+                left: 0.0%;
+                top: 0.0%;
+                }
+      </style>
+
+
+  </head>
+  <body ng-controller="GeoJSONController">
+     
+     <leaflet lf-center="paris" geojson="geojson" geojson-nested="true" id="map_2dd9631d0fdb4b818f2f1b2d4900cf63"></leaflet>
+     <!--
+     <h1>Simple GeoJSON example</h1>
+     -->
+  </body>
+</html>

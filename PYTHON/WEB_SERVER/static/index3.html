@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+      <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+      <script type="text/javascript" src="http://vitalets.github.io/angular-xeditable/dist/js/xeditable.js"></script>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+      <link rel="stylesheet" type="text/css" href="http://vitalets.github.io/angular-xeditable/dist/css/xeditable.css">
+      <script type="text/javascript" src="http://code.angularjs.org/1.0.8/angular-mocks.js"></script>
+      <style type="text/css">
+        div[ng-app] { margin: 10px; }
+        .table {width: 100% }
+        form[editable-form] > div {margin: 10px 0;}
+      </style>
+
+  <title></title>
+
+</head>
+
+<script type="text/javascript" src="/js/application.js"></script>
+<script type="text/javascript" src="/js/tweet_alerts_queries.js"></script>
+
+<body>
+  <h3>STIF : revue des messages identifiés</h3>
+  <h10>Angular-xeditable (Bootstrap 3)</h10>
+    <div ng-app="app" ng-controller="TweetAlertsCtrl" ng-init="init('tweet_alerts_2016.03.03');">
+        <div> Sélectionnez une date :
+          <a href="#" editable-select="select_date"
+             e-ng-options="s | date:'dd/MM/yyyy' for s in allDates"
+             e-ng-change="selectMsgPage($data, pgSize, 1);"
+          >
+            {{ select_date  | date:'dd/MM/yyyy'}}
+          </a>
+        </div>
+        <br>
+          <button class="btn btn-default" ng-click="selectMsgPage(select_date, pgSize, numPage-1);">Prédécent</button>
+              &nbsp;&nbsp; page {{numPage}} / {{nbPages}} &nbsp;&nbsp;
+          <button class="btn btn-default" ng-click="selectMsgPage(select_date, pgSize, numPage+1);">Suivant</button>
+        <br><br>
+          <div>
+           <table class="table table-bordered table-hover table-condensed">
+            <tr style="font-weight: bold">
+              <td style="width:10%">Id</td>
+              <td style="width:10%">Date</td>
+              <td style="width:35%">Texte</td>
+              <td style="width:10%">Classe</td>
+              <td style="width:10%">Max score</td>
+              <td style="width:10%">Revue</td>
+              <td style="width:25%">
+                  <input type="checkbox" id="gcb_action" ng-model="gcb_action" ng-change="selectAllMsg4Action(gcb_action)">
+                  Action &nbsp;&nbsp;
+                  <a href="#" editable-select="select_action"
+                    e-ng-options="s for s in allActions"
+                    e-ng-change="applyAction($data)"
+                    > {{dataAction}}
+                  </a>
+              </td>
+            </tr>
+            <tr ng-repeat="msg in pgMessages">
+              <td>
+                <span>
+                  {{ msg._id }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.created_at | date:'dd/MM/yyyy HH:mm:ss'}}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.text }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.classe }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.max_score | number:4}}
+                </span>
+              </td>
+              <td>
+                <span>
+                  <input type="checkbox" id="cbr_{{ msg._source._id}}" ng_model="msg._source.reviewed" disabled="true">
+                </span>
+              </td>
+              <td style="white-space: nowrap">
+                <!-- form -->
+                <form editable-form name="rowform" onbeforesave="saveUser($data, user.id)" ng-show="rowform.$visible" class="form-buttons form-inline" shown="inserted == user">
+                    <input type="checkbox" id="cba_{{msg._source._id}}" ng-model="msg.selected_4_action">
+                   <!--
+                <button type="submit" ng-disabled="rowform.$waiting" class="btn btn-primary">
+                    save
+                  </button>
+                  <button type="button" ng-disabled="rowform.$waiting" ng-click="rowform.$cancel()" class="btn btn-default">
+                    cancel
+                  </button>
+                  -->
+                </form>
+                  <!--
+                <div class="buttons" ng-show="!rowform.$visible">
+                  <button class="btn btn-primary" ng-click="rowform.$show()">edit</button>
+                  <button class="btn btn-danger" ng-click="removeUser($index)">del</button>
+                </div>
+                -->
+              </td>
+            </tr>
+          </table>
+
+        </div>
+    </div>
+
+</body>
+
+</html>
+
+

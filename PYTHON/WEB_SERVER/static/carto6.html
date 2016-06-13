@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html ng-app="demoapp">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
+    <script type="text/javascript" src="http://vitalets.github.io/angular-xeditable/dist/js/xeditable.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://vitalets.github.io/angular-xeditable/dist/css/xeditable.css">
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.js"></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.css" />
+    <link rel="stylesheet" href="/js/leaflet-sidebar.css" />
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <script src="/js/angular-leaflet-directive.min.js"></script>
+    <script src="/js/easy-button.js"></script>
+    <script src="/js/leaflet-sidebar.js"></script>
+    <link rel="stylesheet" href="/js/easy-button.css" />
+    <link rel="stylesheet" href="/js/metrodna.css" />
+
+	<style>
+		body {
+			padding: 0;
+			margin: 0;
+		}
+		html, body, .angular-leaflet-map {
+			height: 100%;
+            opacity: 1;
+		}
+        .legend {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            font-weight: bold;
+            line-height: 18px;
+            color: #555;
+            width: 400px;
+            height: 450px;
+            opacity: 0.8;
+            display: none;
+        }
+
+        .legend i {
+            clear: both;
+            width: 16px;
+            height: 16px;
+            float: left;
+            opacity: 0.5;
+            margin-right: 8px;
+        }
+        .lorem {
+            font-style: italic;
+            color: #AAA;
+        }
+        div[demoapp] { margin: 10px; }
+        .table {width: 100% }
+        form[editable-form] > div {margin: 10px 0;}
+
+        .tweet-data {
+            font-family: "Arial", Helvetica, sans-serif;
+            font-size: 60%;
+            line-height: 0;
+        }
+        .tweet-head {
+            font-family: "Arial", Helvetica, sans-serif;
+            font-size: 70%;
+            line-height: 1;
+        }
+	</style>
+    <script>
+
+      var app = angular.module("demoapp", ["leaflet-directive"]);
+      app.controller("GeoJSONController", [ '$scope', '$http', 'leafletData', function($scope, $http, leafletData) {
+      angular.extend($scope, {
+            paris: {
+                lat: 48.86,
+                lng: 2.35,
+                zoom: 12
+            },
+            defaults: {
+                scrollWheelZoom: false,
+                zoomControlPosition: 'topright',
+            },
+            geojson:{},
+            legend: {
+                    colors: [ '#CC0066', '#006699', '#FF0000', '#00CC00', '#FFCC00' ],
+                    labels: [ 'Oceania', 'America', 'Europe', 'Africa', 'Asia' ]
+            },
+            showLegend: true,
+            layers: {
+                baselayers: {
+                    mapbox_light: {
+                        name: 'Mapbox Light',
+                        url: 'http://api.tiles.mapbox.com/v4/{mapid}/{z}/{x}/{y}.png?access_token={apikey}',
+                        type: 'xyz',
+                        layerOptions: {
+                            apikey: 'pk.eyJ1IjoiY2F0dmVyZGllciIsImEiOiJxRWdlckFFIn0.c4zRWpbs248fbbcj-q1qRg',
+                            mapid: 'catverdier.lp7ii2ma'
+                        }
+                    },
+                    osm: {
+                        name: 'OpenStreetMap',
+                        url: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        type: 'xyz'
+                    }
+                },
+                overlays:{
+                }
+            },
+            controls: {
+                custom: [
+//                new L.Control.EasyButton('<span><font face="verdana" size="4" color="blue"><b>&#9410;</b></font></span>', function (){
+//                new L.Control.EasyButton('<span class="metro symbole">Metro</span>', function (){
+                new L.Control.EasyButton('<span class="star"><b>M</b></span>', function (){
+                    $scope.hideShowLines('R',0);
+                    $scope.hideShowLines('M',0.5);
+                },''),
+//                new L.Control.EasyButton('<span class="star"><font face="verdana" size="4" color="blue"><b>&#9415;</b></font></span>', function (){
+                new L.Control.EasyButton('<span class="star"><b>R</b></span>', function (){
+                    $scope.hideShowLines('R',0.5);
+                    $scope.hideShowLines('M',0);
+                },''),
+                new L.Control.EasyButton('fa-refresh', function (){
+                    $scope.hideShowLines('R',0.5);
+                    $scope.hideShowLines('M',0.5);
+                },'')
+                ,
+                new L.control.sidebar('sidebar')
+                ]
+            }
+      });
+
+	  var color_by_line = {
+		    "M1": '#00cc44',
+	       	"M2": '#004d1a',
+	        "M3": '#003311',
+	        "M3bis": '#00ff55',
+	        "M4": '#009900',
+	        "M5": '#006600',
+	        "M6": '#00ff00',
+	       	"M7": '#003300',
+	       	"M7bis": '#00cc44',
+	        "M8": '#00e64d',
+	        "M9": '#009933',
+	        "M10": '#006622',
+	        "M11": '#53c653',
+	        "M12": '#339933',
+	        "M13": '#267326',
+	        "M14": '#26734d',
+	        "RER A": "#ff6666",
+	        "RER B": "#ff1a1a",
+	        "RER C": "#ff0000",
+	        "RER D": "#cc0000",
+	        "RER E": "#990000",
+	        "RER H": "#ff4d4d",
+	        "RER K": "#800000",
+	        "RER J": "#ff5050",
+	        "RER P": "#b30000",
+	        "RER R": "#ff3300",
+	        "RER U": "#ff5c33",
+	        "TER": "#4d0f00"
+	};
+
+	  var lineid_by_line = {
+		    "M1": 'ligne1',
+	       	"M2": 'ligne2',
+	        "M3": 'ligne3',
+	        "M3bis": 'ligne3bis',
+	        "M4": 'ligne4',
+	        "M5": 'ligne5',
+	        "M6": 'ligne6',
+	       	"M7": 'ligne7',
+	       	"M7bis": 'ligne7bis',
+	        "M8": 'ligne8',
+	        "M9": 'ligne9',
+	        "M10": 'ligne10',
+	        "M11": 'ligne11',
+	        "M12": 'ligne12',
+	        "M13": 'ligne13',
+	        "M14": 'ligne14',
+	        "RER A": "rera",
+	        "RER B": "rerb",
+	        "RER C": "rerc",
+	        "RER D": "rerd",
+	        "RER E": "rere",
+	        "RER H": "rerh",
+	        "RER K": "rerk",
+	        "RER J": "rerj",
+	        "RER P": "rerp",
+	        "RER R": "rerr",
+	        "RER U": "reru",
+	        "TER": "ter"
+	};
+
+	var empty_geojson = {"type":"FeatureCollection","features":[]};
+
+	for (var i=0; i<$scope.controls.custom.length-1; i++) {
+	    var ctrl = $scope.controls.custom[i];
+	    ctrl.setPosition('bottomright');
+	}
+
+    // Mouse over function, called from the Leaflet Map Events
+    var lineMouseover = function (feature, leafletEvent) {
+        var layer = leafletEvent.target;
+        layer.setStyle({
+            weight: 2,
+            color: 'white',
+            fillColor: 'white'
+        });
+        layer.bringToFront();
+    };
+
+    $scope.hideShowLines = function(type, opacity) {
+        for (var line in $scope.geojson) {
+            var t1 = (type == 'R') && (line.startsWith('RER ') || (line.startsWith('TER')));
+            var t2 = (type == 'M') && (line.startsWith('M')) && (line != 'Métro');
+            if (t1 || t2) {
+                $scope.geojson[line].style.opacity = opacity
+                if (opacity == 0)
+                    $scope.layers.overlays[line].visible = false;
+                else
+                    $scope.layers.overlays[line].visible = true;
+             }
+        }
+    }
+
+    $scope.$on("leafletDirectiveMap.overlayremove", function(ev, leafletPayload) {
+        //alert('leafletDirectiveMap.overlayremove '+leafletPayload.leafletEvent.name);
+        var line_id = leafletPayload.leafletEvent.name;
+        $scope.geojson[line_id].style.opacity = 0;
+    });
+
+    $scope.$on("leafletDirectiveMap.overlayadd", function(ev, leafletPayload) {
+        //alert('leafletDirectiveMap.overlayadd '+leafletPayload.leafletEvent.name);
+        var line_id = leafletPayload.leafletEvent.name;
+        $scope.geojson[line_id].style.opacity = 0.5;
+    });
+
+    $scope.$on("leafletDirectiveGeoJson.mouseover", function(ev, leafletPayload) {
+        //lineMouseover(leafletPayload.leafletObject.feature, leafletPayload.leafletEvent);
+    });
+
+	function onEachFeature(feature, layer) {
+	  var popupContent = "<p>Métro ligne ";
+
+	  popupContent += feature.properties.res_com;
+	  layer.bindPopup(popupContent);
+	}
+
+	function onEachFeature2(feature, layer) {
+	  var popupContent = "<p>";
+
+	  popupContent += feature.properties.res_com;
+	  layer.bindPopup(popupContent);
+	}
+
+    // Get the countries geojson data from a JSON
+    $scope.loadStifLines = function(geojson_file, w, onEachFeatureFct) {
+        $http.get(geojson_file).success(function(data, status) {
+	    var data_features = data["features"];
+	    var geo_lines = {};
+	    for (var i=0;i<data_features.length;i++) {
+	      var line = data_features[i];
+	      var line_id = data_features[i]["properties"]["res_com"];
+	      if (! (line_id in geo_lines)) {
+	        geo_lines[line_id] = angular.copy(empty_geojson);
+	      }
+	      geo_lines[line_id]["features"].push(line);
+	    }
+        var new_geojson = {};
+        var new_overlay = {};
+	    for (var line in geo_lines) {
+	        var col = color_by_line[line];
+	        new_geojson[line] = {
+                      data: geo_lines[line],
+                      layer: line,
+                      style: {
+                        fillColor: "green",
+                        weight: w,
+                        opacity: 0.5,
+                        color: col,
+                        //dashArray: '3',
+                        fillOpacity: 0.7
+                      },
+		      onEachFeature: onEachFeatureFct
+            };
+            new_overlay[line] = {
+                name: line,
+                visible: true,
+                type: 'group'
+            };
+	     }
+        angular.extend($scope.geojson, new_geojson);
+        angular.extend($scope.layers.overlays, new_overlay);
+        });
+    }
+
+    $scope.loadStifLines("traces-metro.geojson", 4, onEachFeature);
+    $scope.loadStifLines("traces-rer.geojson", 6, onEachFeature2);
+
+    // Define ElasticSearch Queries ==>
+    $scope.queryAlertLine = {
+      "query": {
+        "filtered": {
+          "filter": {
+             "bool": {
+              "must_not": [
+                {"missing": {"field": "transport"}}
+              ],
+              "must": [
+              {"match": {"transport": "ligne2"}}
+              ]
+            }
+          }
+        }
+      },
+       "sort" : {"created_at" : {"order" : "desc"}}
+    };
+
+    $scope.queryAlertNoLine = {
+      "query": {
+        "filtered": {
+          "filter": {
+             "bool": {
+              "must": [
+                {"missing": {"field": "transport"}}
+              ]
+            }
+          }
+        }
+      },
+       "sort" : {"created_at" : {"order" : "desc"}}
+    };
+
+    // Define ElasticSearch url server ==>
+    $scope.esURL = "http://lame14.enst.fr:50014";
+
+    // Customize query alerts for a given line
+    $scope.getQueryLine = function(line) {
+        var query = angular.copy($scope.queryAlertLine);
+        query["query"]["filtered"]["filter"]["bool"]["must"][0]["match"]["transport"] = lineid_by_line[line];
+        return query;
+    }
+
+    $scope.addGeolocFlag = function(element, index, array) {
+        element['hasGeoloc'] = false;
+        if (typeof element['_source']['localization'] != "undefined" ||
+            typeof element['_source']['section'] != "undefined") {
+            element['hasGeoloc'] = true;
+        }
+    }
+
+    $scope.showAlerts = function(line) {
+        $scope.markers = new Array();
+        $scope.metroLine = line;
+        var query = $scope.getQueryLine(line);
+//        $scope.unflashLine();
+//        $scope.flashLine(line);
+        $http({
+            url: $scope.esURL+'/stif-alertes/_search?size=50',
+            method: "POST",
+            data: query,
+        }).success(function (data, status, headers, config) {
+            // keep only hits
+            $scope.lineAlerts = data['hits']['hits'];
+            // Add field as indicator of geoloc(Y/N) information
+            $scope.lineAlerts.forEach($scope.addGeolocFlag);
+        });
+    }
+
+    $scope.showAlertsNoLine = function() {
+        $scope.markers = new Array();
+//        $scope.unflashLine();
+        $http({
+            url: $scope.esURL+'/stif-alertes/_search?size=50',
+            method: "POST",
+            data: $scope.queryAlertNoLine,
+        }).success(function (data, status, headers, config) {
+            // keep only hits
+            $scope.lineAlerts = data['hits']['hits'];
+            // Add field as indicator of geoloc(Y/N) information
+            $scope.lineAlerts.forEach($scope.addGeolocFlag);
+        });
+    }
+
+      $scope.convertToDate = function (stringDate){
+        var dateOut = new Date(stringDate);
+        return dateOut;
+      };
+
+      $scope.markers = new Array();
+
+      $scope.buildMessage = function(msg) {
+        var message = $scope.convertToDate(msg._source.created_at)+'<br>'+
+        msg._source.text;
+        return message;
+      }
+
+    $scope.center = function(center) {
+        leafletData.getMap().then(function(map) {
+            map.panTo(new L.LatLng(center[0], center[1]));
+        });
+    };
+
+      $scope.showMarkers = function(msg) {
+        $scope.markers = new Array();
+        var center = [];
+        if (typeof msg._source.localization != "undefined") {
+            $scope.markers.push({
+                lat: msg._source.localization.lat,
+                lng: msg._source.localization.lon,
+                markerColor: 'red',
+                message: $scope.buildMessage(msg)+'<br>'+msg._source.localization_text
+            });
+            center.push(msg._source.localization.lat);
+            center.push(msg._source.localization.lon);
+        }
+        if (typeof msg._source.section != "undefined") {
+            for (var i=0;i<msg._source.section.length; i++) {
+                $scope.markers.push({
+                    lat: msg._source.section[i].lat,
+                    lng: msg._source.section[i].lon,
+                    message: $scope.buildMessage(msg)+'<br>'+msg._source.section_text[i]
+                });
+                if (i==msg._source.section.length-1 && (center.length == 0)) {
+                    center.push(msg._source.section[i].lat);
+                    center.push(msg._source.section[i].lon);
+                }
+            }
+        }
+        if (center.length != 0) {
+            $scope.center(center);
+        }
+      }
+
+      $scope.flashedLine = "";
+
+      $scope.flash = function() {
+        $scope.layers.overlays[$scope.flashedLine].visible = !$scope.layers.overlays[$scope.flashedLine].visible;
+      }
+
+      $scope.unflashLine = function() {
+        if ($scope.flashedLine != "") {
+            clearInterval($scope.flashInterval);
+            $scope.layers.overlays[$scope.flashedLine].visible = true;
+            $scope.flashedLine = "";
+        }
+      }
+
+      $scope.flashLine = function(line) {
+        if ($scope.flashedLine != "") {
+            $scope.unflashLine();
+        }
+        $scope.flashedLine = line;
+        $scope.flashInterval = setInterval($scope.flash, 1000);
+      }
+
+  } ]);
+      </script>
+  </head>
+  <body ng-controller="GeoJSONController">
+    <div id="sidebar" class="sidebar collapsed">
+        <!-- Nav tabs -->
+        <div class="sidebar-tabs">
+            <ul role="tablist">
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M1');"><span class="star"><font face="verdana" size="1" color="blue"><b>M1</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M2');"><span class="star"><font face="verdana" size="1" color="blue"><b>M2</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M3');"><span class="star"><font face="verdana" size="1" color="blue"><b>M3</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M3bis');"><span class="star"><font face="verdana" size="1" color="blue"><b>M3bis</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M4');"><span class="star"><font face="verdana" size="1" color="blue"><b>M4</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M5');"><span class="star"><font face="verdana" size="1" color="blue"><b>M5</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M6');"><span class="star"><font face="verdana" size="1" color="blue"><b>M6</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M7');"><span class="star"><font face="verdana" size="1" color="blue"><b>M7</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M7bis');"><span class="star"><font face="verdana" size="1" color="blue"><b>M7bis</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M8');"><span class="star"><font face="verdana" size="1" color="blue"><b>M8</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M9');"><span class="star"><font face="verdana" size="1" color="blue"><b>M9</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M10');"><span class="star"><font face="verdana" size="1" color="blue"><b>M10</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M11');"><span class="star"><font face="verdana" size="1" color="blue"><b>M11</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M12');"><span class="star"><font face="verdana" size="1" color="blue"><b>M12</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M13');"><span class="star"><font face="verdana" size="1" color="blue"><b>M13</b></font></span></a></li>
+                <li><a href="#metro" role="tab" ng-click="showAlerts('M14');"><span class="star"><font face="verdana" size="1" color="blue"><b>M14</b></font></span></a></li>
+            </ul>
+            <ul role="tablist">
+                <li><a href="#rer" role="tab" ng-click="showAlerts('RER A');"><span class="star"><font face="verdana" size="1" color="blue"><b>RER A</b></font></span></a></li>
+                <li><a href="#rer" role="tab" ng-click="showAlerts('RER B');"><span class="star"><font face="verdana" size="1" color="blue"><b>RER B</b></font></span></a></li>
+                <li><a href="#rer" role="tab" ng-click="showAlerts('RER C');"><span class="star"><font face="verdana" size="1" color="blue"><b>RER C</b></font></span></a></li>
+                <li><a href="#rer" role="tab" ng-click="showAlerts('RER D');"><span class="star"><font face="verdana" size="1" color="blue"><b>RER D</b></font></span></a></li>
+                <li><a href="#rer" role="tab" ng-click="showAlerts('RER E');"><span class="star"><font face="verdana" size="1" color="blue"><b>RER E</b></font></span></a></li>
+                <li><a href="#noline" role="tab" ng-click="showAlertsNoLine();"><span class="star"><font face="verdana" size="1" color="blue"><b>?</b></font></span></a></li>
+            </ul>
+        </div>
+
+        <!-- Tab panes -->
+        <div class="sidebar-content">
+            <div class="sidebar-pane" id="metro">
+                <h1 class="sidebar-header">
+                    Ligne : {{metroLine}}
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+                <div>
+                    <table class="table table-bordered table-hover table-condensed">
+                        <tr style="font-weight: bold">
+                            <td  class="tweet-head" style="width:10%">Date</td>
+                            <td  class="tweet-head" style="width:35%">Texte</td>
+                            <td  class="tweet-head" style="width:10%">GEO</td>
+                        </tr>
+                        <tr ng-repeat="msg in lineAlerts">
+                          <td valign="top">
+                            <span class="tweet-data">
+                              {{ convertToDate(msg._source.created_at) | date:'dd/MM/yyyy HH:mm:ss'}}
+                            </span>
+                          </td>
+                         <td>
+                            <span class="tweet-data">
+                              {{ msg._source.text }}
+                            </span>
+                          </td>
+                          <td align="center">
+                            <a href="#" class="btn btn-info btn-sm" ng-click="showMarkers(msg);">
+                              <i class="fa fa-map-marker" aria-hidden="true" ng-if="msg.hasGeoloc"></i>
+                            </a>
+                          </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="sidebar-pane" id="rer">
+                <h1 class="sidebar-header">
+                    Ligne : {{metroLine}}
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+                <div>
+                    <table class="table table-bordered table-hover table-condensed">
+                        <tr style="font-weight: bold">
+                            <td  class="tweet-head" style="width:10%">Date</td>
+                            <td  class="tweet-head" style="width:35%">Texte</td>
+                            <td  class="tweet-head" style="width:10%">GEO</td>
+                        </tr>
+                        <tr ng-repeat="msg in lineAlerts">
+                          <td valign="top">
+                            <span class="tweet-data">
+                              {{ convertToDate(msg._source.created_at) | date:'dd/MM/yyyy HH:mm:ss'}}
+                            </span>
+                          </td>
+                         <td>
+                            <span class="tweet-data">
+                              {{ msg._source.text }}
+                            </span>
+                          </td>
+                          <td align="center">
+                            <a href="#" class="btn btn-info btn-sm" ng-click="showMarkers(msg);">
+                              <i class="fa fa-map-marker" aria-hidden="true" ng-if="msg.hasGeoloc"></i>
+                            </a>
+                          </td>
+                       </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="sidebar-pane" id="noline">
+                <h1 class="sidebar-header">
+                    Pas de ligne identifiée
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+                <div>
+                    <table class="table table-bordered table-hover table-condensed">
+                        <tr style="font-weight: bold">
+                            <td  class="tweet-head" style="width:10%">Date</td>
+                            <td  class="tweet-head" style="width:35%">Texte</td>
+                            <td  class="tweet-head" style="width:10%">GEO</td>
+                        </tr>
+                        <tr ng-repeat="msg in lineAlerts">
+                          <td valign="top">
+                            <span class="tweet-data">
+                              {{ convertToDate(msg._source.created_at) | date:'dd/MM/yyyy HH:mm:ss'}}
+                            </span>
+                          </td>
+                         <td>
+                            <span class="tweet-data">
+                              {{ msg._source.text }}
+                            </span>
+                          </td>
+                          <td align="center">
+                            <a href="#" class="btn btn-info btn-sm" ng-clic="showMarkers(msg);">
+                              <i class="fa fa-map-marker" aria-hidden="true" ng-if="msg.hasGeoloc"></i>
+                            </a>
+                          </td>
+                       </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="sidebar-pane" id="home">
+                <h1 class="sidebar-header">
+                    sidebar-v2
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+                <p>A responsive sidebar for mapping libraries like <a href="http://leafletjs.com/">Leaflet</a> or <a href="http://openlayers.org/">OpenLayers</a>.</p>
+                <p class="lorem">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+                <p class="lorem">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+                <p class="lorem">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+                <p class="lorem">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+            </div>
+            <div class="sidebar-pane" id="profile">
+                <h1 class="sidebar-header">Profile<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+            </div>
+            <div class="sidebar-pane" id="messages">
+                <h1 class="sidebar-header">Messages<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+            </div>
+            <div class="sidebar-pane" id="settings">
+                <h1 class="sidebar-header">Settings<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+            </div>
+        </div>
+    </div>
+
+    <leaflet lf-center="paris" legend="legend" layers="layers" controls="controls" markers="markers" geojson="geojson" geojson-nested="true" defaults="defaults" width="100%">
+    </leaflet>
+  </body>
+</html>

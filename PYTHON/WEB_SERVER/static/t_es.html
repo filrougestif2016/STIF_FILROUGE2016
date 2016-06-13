@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+      <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+      <script type="text/javascript" src="http://vitalets.github.io/angular-xeditable/dist/js/xeditable.js"></script>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+      <!--link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"-->
+      <link rel="stylesheet" type="text/css" href="http://vitalets.github.io/angular-xeditable/dist/css/xeditable.css">
+      <script type="text/javascript" src="http://code.angularjs.org/1.0.8/angular-mocks.js"></script>
+  <script type="text/javascript" src="http://okfnlabs.org/recline/vendor/jquery/1.7.1/jquery.js"></script>
+  <script type="text/javascript" src="http://okfnlabs.org/recline/vendor/underscore/1.4.4/underscore.js"></script>
+  <script type="text/javascript" src="http://okfnlabs.org/recline/vendor/underscore.deferred/0.4.0/underscore.deferred.js"></script>
+    <script type="text/javascript" src="http://okfnlabs.org/elasticsearch.js/elasticsearch.js"></script>
+  <style type="text/css">
+    div[ng-app] { margin: 10px; }
+.table {width: 100% }
+form[editable-form] > div {margin: 10px 0;}
+  </style>
+
+  <title></title>
+
+
+</head>
+
+<body>
+<script type="text/javascript">
+// Your ElasticSearch instance is running at http://lame14.enst.fr:50014/
+// We are using index 'twitter' and type (table) 'tweet'
+var endpoint = 'http://lame14.enst.fr:50014/tweet_alerts/tweet_alert';
+
+// Table = an ElasticSearch Type (aka Table)
+// http://www.elasticsearch.org/guide/reference/glossary/#type
+var table = ES.Table(endpoint);
+
+// Create some data
+/*
+table.upsert({
+  id: '123',
+  title: 'My new tweet'
+}).done(function() {
+  // now get it
+  table.get('123').done(function(doc) {
+    console.log(doc);
+  });
+});
+*/
+
+// Query for data
+// Queries follow Recline Query spec -
+// http://okfnlabs.org/recline/docs/models.html#query-structure
+// (very similar to ES)
+table.query({
+    "size": 0,
+    "aggs" : {
+        "_source" : {
+            "date_histogram" : {
+                "field" : "created_at",
+                "interval" : "day"
+            }
+        }
+    }
+}).done(function(out) {
+  console.log(out);
+});
+
+// get the mapping for this "table"
+// http://www.elasticsearch.org/guide/reference/glossary/#mapping
+table.mapping().done(function(theMapping) {
+  console.log(theMapping)
+});
+
+</script>
+
+</body>
+
+</html>
+

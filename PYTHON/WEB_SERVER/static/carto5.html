@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html ng-app="demoapp">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.js"></script>
+      <!--
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    -->
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <script src="/js/angular-leaflet-directive.min.js"></script>
+    <script src="/js/easy-button.js"></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.css" />
+    <link rel="stylesheet" href="/js/easy-button.css" />
+
+	<style>
+		body {
+			padding: 0;
+			margin: 0;
+		}
+		html, body, .angular-leaflet-map {
+			height: 100%;
+            opacity: 1;
+		}
+        .legend {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            font-weight: bold;
+            line-height: 18px;
+            color: #555;
+            width: 400px;
+            height: 450px;
+            opacity: 0.8;
+            display: none;
+        }
+
+        .legend i {
+            clear: both;
+            width: 16px;
+            height: 16px;
+            float: left;
+            opacity: 0.5;
+            margin-right: 8px;
+        }
+	</style>
+    <script>
+
+      var app = angular.module("demoapp", ["leaflet-directive"]);
+      app.controller("GeoJSONController", [ '$scope', '$http', 'leafletData', function($scope, $http, leafletData) {
+      angular.extend($scope, {
+            paris: {
+                lat: 48.86,
+                lng: 2.35,
+                zoom: 12
+            },
+            defaults: {
+                scrollWheelZoom: false
+            },
+            geojson:{},
+            legend: {
+                    colors: [ '#CC0066', '#006699', '#FF0000', '#00CC00', '#FFCC00' ],
+                    labels: [ 'Oceania', 'America', 'Europe', 'Africa', 'Asia' ]
+            },
+            showLegend: true,
+            layers: {
+                baselayers: {
+                    mapbox_light: {
+                        name: 'Mapbox Light',
+                        url: 'http://api.tiles.mapbox.com/v4/{mapid}/{z}/{x}/{y}.png?access_token={apikey}',
+                        type: 'xyz',
+                        layerOptions: {
+                            apikey: 'pk.eyJ1IjoiY2F0dmVyZGllciIsImEiOiJxRWdlckFFIn0.c4zRWpbs248fbbcj-q1qRg',
+                            mapid: 'catverdier.lp7ii2ma'
+                        }
+                    },
+                    osm: {
+                        name: 'OpenStreetMap',
+                        url: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        type: 'xyz'
+                    }
+                },
+                overlays:{
+                }
+            },
+            controls: {
+                custom: [
+                new L.Control.EasyButton('<span class="star"><b>M</b></span>', function (){
+                    $scope.hideShowLines('R',0);
+                    $scope.hideShowLines('M',0.5);
+                },''),
+                new L.Control.EasyButton('<span class="star"><b>R</b></span>', function (){
+                    $scope.hideShowLines('R',0.5);
+                    $scope.hideShowLines('M',0);
+                },''),
+                new L.Control.EasyButton('fa-refresh', function (){
+                    $scope.hideShowLines('R',0.5);
+                    $scope.hideShowLines('M',0.5);
+                },'')
+                ]
+            }
+      });
+
+	  var color_by_line = {
+		    "M1": 'blue',
+	       	"M2": 'red',
+	        "M3": 'green',
+	        "M3bis": 'green',
+	        "M4": 'black',
+	        "M5": 'orange',
+	        "M6": 'yellow',
+	       	"M7": 'green',
+	       	"M7bis": 'green',
+	        "M8": '#FF00BF',
+	        "M9": 'black',
+	        "M10": '#526EA1',
+	        "M11": '#A4787C',
+	        "M12": '#574D15',
+	        "M13": 'red',
+	        "M14": '#4E8850',
+	        "RER A": "#5c5c3d",
+	        "RER B": "#3d3d5c",
+	        "RER C": "#660022",
+	        "RER D": "#663d00",
+	        "RER E": "#ff3333",
+	        "RER H": "#004d66",
+	        "RER K": "#2d8659",
+	        "RER J": "#1a1a00",
+	        "RER P": "#476b6b",
+	        "RER R": "#009999",
+	        "RER U": "#5c0099"
+	};
+
+	var empty_geojson = {"type":"FeatureCollection","features":[]};
+
+    // Mouse over function, called from the Leaflet Map Events
+    var lineMouseover = function (feature, leafletEvent) {
+        var layer = leafletEvent.target;
+        layer.setStyle({
+            weight: 2,
+            color: 'white',
+            fillColor: 'white'
+        });
+        layer.bringToFront();
+    };
+
+    $scope.hideShowLines = function(type, opacity) {
+        for (var line in $scope.geojson) {
+            var t1 = (type == 'R') && (line.startsWith('RER ') || (line.startsWith('TER')));
+            var t2 = (type == 'M') && (line.startsWith('M')) && (line != 'Métro');
+            if (t1 || t2) {
+                $scope.geojson[line].style.opacity = opacity
+                if (opacity == 0)
+                    $scope.layers.overlays[line].visible = false;
+                else
+                    $scope.layers.overlays[line].visible = true;
+             }
+        }
+    }
+
+    $scope.$on("leafletDirectiveMap.overlayremove", function(ev, leafletPayload) {
+        //alert('leafletDirectiveMap.overlayremove '+leafletPayload.leafletEvent.name);
+        var line_id = leafletPayload.leafletEvent.name;
+        $scope.geojson[line_id].style.opacity = 0;
+    });
+
+    $scope.$on("leafletDirectiveMap.overlayadd", function(ev, leafletPayload) {
+        //alert('leafletDirectiveMap.overlayadd '+leafletPayload.leafletEvent.name);
+        var line_id = leafletPayload.leafletEvent.name;
+        $scope.geojson[line_id].style.opacity = 0.5;
+    });
+
+    $scope.$on("leafletDirectiveGeoJson.mouseover", function(ev, leafletPayload) {
+        //lineMouseover(leafletPayload.leafletObject.feature, leafletPayload.leafletEvent);
+    });
+
+	function onEachFeature(feature, layer) {
+	  var popupContent = "<p>Métro ligne ";
+
+	  popupContent += feature.properties.res_com;
+	  layer.bindPopup(popupContent);
+	}
+
+	function onEachFeature2(feature, layer) {
+	  var popupContent = "<p>";
+
+	  popupContent += feature.properties.res_com;
+	  layer.bindPopup(popupContent);
+	}
+
+    // Get the countries geojson data from a JSON
+    $scope.loadStifLines = function(geojson_file, w, onEachFeatureFct) {
+        $http.get(geojson_file).success(function(data, status) {
+	    var data_features = data["features"];
+	    var geo_lines = {};
+	    for (var i=0;i<data_features.length;i++) {
+	      var line = data_features[i];
+	      var line_id = data_features[i]["properties"]["res_com"];
+	      if (! (line_id in geo_lines)) {
+	        geo_lines[line_id] = angular.copy(empty_geojson);
+	      }
+	      geo_lines[line_id]["features"].push(line);
+	    }
+        var new_geojson = {};
+        var new_overlay = {};
+        /*
+        new_overlay["RER"] = {
+            name: "RER",
+            visible: true,
+            type: 'group',
+            notUserAction: false
+        };
+        new_overlay["Métro"] = {
+            name: "Métro",
+            visible: true,
+            type: 'group',
+            notUserAction: false
+        };
+        */
+	    for (var line in geo_lines) {
+	        var col = color_by_line[line];
+	        new_geojson[line] = {
+                      data: geo_lines[line],
+                      layer: line,
+                      style: {
+                        fillColor: "green",
+                        weight: w,
+                        opacity: 0.5,
+                        color: col,
+                        //dashArray: '3',
+                        fillOpacity: 0.7
+                      },
+		      onEachFeature: onEachFeatureFct
+            };
+            new_overlay[line] = {
+                name: line,
+                visible: true,
+                type: 'group'
+            };
+	     }
+        angular.extend($scope.geojson, new_geojson);
+        angular.extend($scope.layers.overlays, new_overlay);
+        });
+    }
+
+
+    $scope.loadStifLines("traces-metro.geojson", 4, onEachFeature);
+    $scope.loadStifLines("traces-rer.geojson", 6, onEachFeature2);
+
+  } ]);
+      </script>
+  </head>
+  <body ng-controller="GeoJSONController">
+     <leaflet lf-center="paris" legend="legend" layers="layers" controls="controls" geojson="geojson" geojson-nested="true" defaults="defaults" width="100%"></leaflet>
+     <!--
+      <div ng-show="showLegend">
+        'No country'
+      </div>
+      -->
+     <!--
+     <h1>Simple GeoJSON example</h1>
+     -->
+  </body>
+</html>

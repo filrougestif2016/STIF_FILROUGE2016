@@ -1,0 +1,6 @@
+curl 'lame14.enst.fr:50012/tweets-2016.01.06/_search' -d  '{
+    "query" : { "query_string" : {"query" : "*"} },
+    "facets" : {
+      "fields" : { "text" } }
+    }
+  }'

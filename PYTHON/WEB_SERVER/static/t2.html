@@ -1,0 +1,24 @@
+<!doctype html>
+<html ng-app="EsConnector">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.15/angular.js"></script>  
+    <script src="/js/elasticsearch.angular.js"></script>
+    <script src="/js/es_connect.js"></script>
+    <script>
+    </script>
+  </head>
+  <body>
+    <div ng-controller="QueryController">
+    <div >
+        <table>
+          <tr ng-repeat="item in hits">
+          <td>{{item['key_as_string']}}</td></tr>
+        </table>
+    
+
+    </div>
+    <br>
+    Above this line ^^^  should be the results of a test search on the ElasticSearch server.
+    </body>
+</html>

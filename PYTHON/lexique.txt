@@ -1,0 +1,15 @@
+colis
+metro
+ligne
+ratp
+rer
+bus
+station
+rame
+controleur
+direction
+trafic
+station
+accident
+ralentissement
+perturbation

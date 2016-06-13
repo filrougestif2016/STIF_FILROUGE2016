@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+      <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+      <script type="text/javascript" src="http://vitalets.github.io/angular-xeditable/dist/js/xeditable.js"></script>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+      <link rel="stylesheet" type="text/css" href="http://vitalets.github.io/angular-xeditable/dist/css/xeditable.css">
+      <script type="text/javascript" src="http://code.angularjs.org/1.0.8/angular-mocks.js"></script>
+      <script src="http://code.highcharts.com/stock/highstock.src.js"></script>
+      <script src="https://rawgit.com/pablojim/highcharts-ng/master/dist/highcharts-ng.js"></script>
+      <style type="text/css">
+        div[ng-app] { margin: 10px; }
+        .table {width: 100% }
+        form[editable-form] > div {margin: 10px 0;}
+      </style>
+      <script>
+    	angular.module('app', [], function($locationProvider) {
+      		$locationProvider.html5Mode(true);
+    	});
+      </script>
+
+  <title></title>
+
+</head>
+
+<script type="text/javascript" src="/js/application.js"></script>
+<script type="text/javascript" src="/js/stif_alertes_queries.js"></script>
+
+
+<body>
+  <h3>STIF : alertes par ligne</h3>
+  <h10>Angular-xeditable (Bootstrap 3)</h10>
+    <div ng-app="app" ng-controller="TweetAlertsCtrl" ng-init="init('stif-alertes', 15);">
+        <div> Sélectionnez une date :
+          <a href="#" editable-select="select_date"
+             e-ng-options="s | date:'dd/MM/yyyy' for s in allDates"
+             e-ng-change="selectMsgPage($data, pgSize, 1);"
+          >
+            {{ select_date  | date:'dd/MM/yyyy'}}
+          </a>
+        </div>
+        <br>
+          <button class="btn btn-default" ng-click="selectMsgPage(select_date, pgSize, numPage1-1);">Prédécent</button>
+              &nbsp;&nbsp; page {{numPage1}} / {{nbPages}} &nbsp;&nbsp;
+          <button class="btn btn-default" ng-click="selectMsgPage(select_date, pgSize, numPage1+1);">Suivant</button>
+        <br><br>
+          <div>
+           <table class="table table-bordered table-hover table-condensed">
+            <tr style="font-weight: bold">
+              <td style="width:10%">Auteur</td>
+              <td style="width:10%">Date</td>
+              <td style="width:35%">Texte</td>
+              <td style="width:10%">Transport</td>
+              <td style="width:10%">Localisation</td>
+              <td style="width:10%">Section</td>
+            </tr>
+            <tr ng-repeat="msg in pgMessages">
+              <td>
+                <span>
+                  {{ msg._source.user.screen_name }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.created_at | date:'dd/MM/yyyy HH:mm:ss'}}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.text }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.transport }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.localization_text}}
+                </span>
+              </td>
+              <td>
+                <span>
+                  {{ msg._source.section_text}}
+                </span>
+              </td>
+            </tr>
+          </table>
+
+        </div>
+    </div>
+
+</body>
+
+</html>
+
+
