@@ -10,10 +10,10 @@ import re
 import sys
 
 #Variables that contains the user credentials to access Twitter API
-access_token = "4393396527-cK3lOyJu3ENYXY8IOfwYq70LIOERFM6GT8T9X6G"
-access_token_secret = "IGBGw7FszdmD6liG0js6cB1IulXRXjW5qECM3TMrdO7mw"
-consumer_key = "tHJySdGjX2zmaa80WMwCXPK9j"
-consumer_secret = "W2YoaUEcuSFjmS1VUAS744s8Um7i11vnbrfEDIQRK5Jj8EWkwT"
+access_token = ""
+access_token_secret = ""
+consumer_key = ""
+consumer_secret = ""
 
 output="twitter.output"
 lexical="lexique.txt"
